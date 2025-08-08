@@ -271,3 +271,115 @@ write.xlsx(go_ResT_up_sig,"GO_BP_up_significant_GSEA.xlsx")
 
 write.xlsx(go_ResT_dn_sig,"GO_BP_dn_significant_GSEA.xlsx")
 
+
+library(DESeq2)
+
+rld <- DESeq2::rlog(dds, blind = FALSE)
+
+rlogMat <- assay(rld)
+
+fibrosis = c("Col1a1","Col3a1","Col6a1","Fn1")
+
+inflammatory = c("Tnf","Il6","Ifng","Ccl2","Ccl3","Ccl4")
+
+
+
+fibrosis_exp  = rlogMat[fibrosis,]
+
+fibrosis_exp  <- as.data.frame(t(fibrosis_exp))
+
+fibrosis_exp$Groups <- c(rep("WAT",8),rep("P2RY6_KO",7))
+
+
+library(tidyr)
+
+library(tibble)
+
+
+fibrosis_exp<- fibrosis_exp%>%
+  rownames_to_column("Sample") %>% 
+  gather(key = Gene,value = Proportion,-Sample,-Groups)
+
+
+fibrosis_exp$Groups <- factor(fibrosis_exp$Groups,levels = c("WAT","P2RY6_KO"))
+
+
+library(ggplot2)
+
+library(ggpubr)
+
+library(rstatix)
+
+png(filename="final_result/fibrosis_violin.png",width=800,height=600,unit="px",bg="transparent")
+
+ggplot(fibrosis_exp, aes(x=Gene, y=Proportion,fill = Groups)) + 
+  geom_violin(trim = FALSE,position = position_dodge(width = 1),scale = 'width')+
+  theme_bw() + geom_pwc(
+    aes(group = Groups),
+    method = "t_test", label = "p.signif",size = 1,label.size = 10) +
+  geom_boxplot(lwd = 1.5,position = position_dodge(width = 1),outlier.size = 0.7,width= 0.2,show.legend = FALSE) +  theme(text = element_text(face = "bold",size=20)) + ylab("Normalized expression level") + scale_fill_manual(values = c('WAT'="#619CFF", 'P2RY6_KO'='#F8766D'))
+
+dev.off()
+
+
+inflammatory_exp  = rlogMat[inflammatory,]
+
+inflammatory_exp  <- as.data.frame(t(inflammatory_exp))
+
+inflammatory_exp$Groups <- c(rep("WAT",8),rep("P2RY6_KO",7))
+
+
+library(tidyr)
+
+library(tibble)
+
+
+inflammatory_exp<- inflammatory_exp%>%
+  rownames_to_column("Sample") %>% 
+  gather(key = Gene,value = Proportion,-Sample,-Groups)
+
+
+inflammatory_exp$Groups <- factor(inflammatory_exp$Groups,levels = c("WAT","P2RY6_KO"))
+
+
+library(ggplot2)
+
+library(ggpubr)
+
+library(rstatix)
+
+png(filename="final_result/inflammatory_violin.png",width=800,height=600,unit="px",bg="transparent")
+
+ggplot(inflammatory_exp, aes(x=Gene, y=Proportion,fill = Groups)) + 
+  geom_violin(trim = FALSE,position = position_dodge(width = 1),scale = 'width')+
+  theme_bw() + geom_pwc(
+    aes(group = Groups),
+    method = "t_test", label = "p.signif",size = 1,label.size = 10) +
+  geom_boxplot(lwd = 1.5,position = position_dodge(width = 1),outlier.size = 0.7,width= 0.2,show.legend = FALSE) +  theme(text = element_text(face = "bold",size=20)) + ylab("Normalized expression level") + scale_fill_manual(values = c('WAT'="#619CFF", 'P2RY6_KO'='#F8766D'))
+
+dev.off()
+
+
+
+library(openxlsx)
+
+
+selected_GO_BP_DN <- read.xlsx("inflammatory_dn.xlsx")
+
+library(ggplot2)
+
+
+png(filename="final_result/GO_BP_GSEA.png",width=1000,height=800,unit="px",bg="transparent",res = 100)
+
+
+ggplot(selected_GO_BP_DN  , aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=NES > 1.0)) +
+  coord_flip() +
+  labs(x="Pathway Terms", y="Normalized Enrichment Score",
+       title="GO Biological Process from GSEA") + 
+  theme_bw()+ scale_fill_manual(name = "NES",labels = c("Negative", "Positive")
+                                ,values = c("TRUE" = "#F8766D","FALSE"= "#619CFF"))+
+  theme(axis.title.x = element_text(face="bold"),axis.title.y = element_text(face="bold"),legend.title = element_text(face="bold"))
+
+
+dev.off()
